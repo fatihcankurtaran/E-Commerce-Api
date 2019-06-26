@@ -45,7 +45,7 @@ namespace WebApi
                 x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
             .AddJwtBearer(x =>
-            {
+            {   
                 x.Events = new JwtBearerEvents
                 {
                     OnTokenValidated = context =>

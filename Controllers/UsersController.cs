@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using WebApi.Services;
 using WebApi.Dtos;
 using WebApi.Entities;
-
+using Microsoft.Extensions.Configuration;
 namespace WebApi.Controllers
 {
     [Authorize]
@@ -33,7 +33,8 @@ namespace WebApi.Controllers
             _mapper = mapper;
             _appSettings = appSettings.Value;
         }
-
+        
+      
         [AllowAnonymous]
         [HttpPost("authenticate")]
         public IActionResult Authenticate([FromBody] UserDto userDto)
@@ -49,9 +50,13 @@ namespace WebApi.Controllers
             {
                 Subject = new ClaimsIdentity(new Claim[]
                 {
-                    new Claim(ClaimTypes.Name, user.Id.ToString())
+                    new Claim(ClaimTypes.Name, user.Id.ToString()),
+                    new Claim(ClaimTypes.Role,user.Role.ToString())
                 }),
+                Issuer = "fatihcankurtaran.com",
+                Audience  = "fatih",
                 Expires = DateTime.UtcNow.AddDays(7),
+                NotBefore = DateTime.UtcNow,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
             };
@@ -98,6 +103,7 @@ namespace WebApi.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "User")]
         public IActionResult GetById(int id)
         {
             var user = _userService.GetById(id);

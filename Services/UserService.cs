@@ -68,7 +68,7 @@ namespace WebApi.Services
 
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
-
+            user.Role = "user";
             _context.Users.Add(user);
             _context.SaveChanges();
 
