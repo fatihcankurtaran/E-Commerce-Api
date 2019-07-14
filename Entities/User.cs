@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace WebApi.Entities
@@ -14,6 +15,7 @@ namespace WebApi.Entities
         public byte[] PasswordSalt { get; set; }
         [Required]
         public string Role { get; set; }
+        
 
     }
 }

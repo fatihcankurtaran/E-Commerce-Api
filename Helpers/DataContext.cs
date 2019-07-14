@@ -8,6 +8,10 @@ namespace WebApi.Helpers
         public DataContext(DbContextOptions<DataContext> options) : base(options)
         {
         }
+        public DataContext() : base()
+        {
+
+        }
 
         public DbSet<User> Users { get; set; }
 

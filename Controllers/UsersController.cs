@@ -9,10 +9,12 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
 using WebApi.Services;
 using WebApi.Dtos;
 using WebApi.Entities;
 using Microsoft.Extensions.Configuration;
+using System.Linq;
 namespace WebApi.Controllers
 {
     [Authorize]
@@ -46,6 +48,7 @@ namespace WebApi.Controllers
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
+            var dateTime= DateTime.UtcNow.AddDays(7);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new Claim[]
@@ -55,23 +58,30 @@ namespace WebApi.Controllers
                 }),
                 Issuer = "fatihcankurtaran.com",
                 Audience  = "fatih",
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = dateTime,
+                //Expires = DateTime.UtcNow.AddSeconds(20),
                 NotBefore = DateTime.UtcNow,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
                     SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var tokenString = tokenHandler.WriteToken(token);
-
-            // return basic user info (without password) and token to store client side
-            return Ok(new
+            using (DataContext context = new DataContext())
             {
-                Id = user.Id,
-                Username = user.Username,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Token = tokenString
-            });
+                var tempUser = context.Users.FirstOrDefault(x => x.Id == user.Id);
+                context.SaveChanges();
+            }
+
+                // return basic user info (without password) and token to store client side
+                return Ok(new
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    Token = tokenString
+                });
+           
         }
 
         [AllowAnonymous]
@@ -99,9 +109,22 @@ namespace WebApi.Controllers
         {
             var users = _userService.GetAll();
             var userDtos = _mapper.Map<IList<UserDto>>(users);
+            var authenticateInfo = Request.Headers["Authorization"];
+            var tokenString = authenticateInfo.ToString().Split(separator:" ")[1];
             return Ok(userDtos);
-        }
 
+        }
+        [HttpGet("LogOut")]
+        public IActionResult LogOut()
+        {
+            var users = _userService.GetAll();
+            var userDtos = _mapper.Map<IList<UserDto>>(users);
+            var authenticateInfo = Request.Headers["Authorization"];
+            var tokenString = authenticateInfo.ToString().Split(separator: " ")[1];
+            PublicConstants.blackListedUserTokens.Add(tokenString);
+            return Ok(userDtos);
+
+        }
         [HttpGet("{id}")]
         [Authorize(Roles = "User")]
         public IActionResult GetById(int id)

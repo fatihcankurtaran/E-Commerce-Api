@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 using System;
 
 namespace WebApi
@@ -21,14 +22,13 @@ namespace WebApi
         {
             Configuration = configuration;
         }
-
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.AddDbContext<DataContext>(x => x.UseSqlServer(Configuration.GetConnectionString(name: "DevConnection")));
+            services.AddDbContext<DataContext>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
             services.AddAutoMapper();
 
@@ -39,6 +39,7 @@ namespace WebApi
             // configure jwt authentication
             var appSettings = appSettingsSection.Get<AppSettings>();
             var key = Encoding.ASCII.GetBytes(appSettings.Secret);
+            
             services.AddAuthentication(x =>
             {
                 x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -53,6 +54,16 @@ namespace WebApi
                         var userService = context.HttpContext.RequestServices.GetRequiredService<IUserService>();
                         var userId = int.Parse(context.Principal.Identity.Name);
                         var user = userService.GetById(userId);
+                        var token = context.Request.Headers["Authorization"].ToString().Split(separator: " ")[1];
+
+                        foreach (var item in PublicConstants.blackListedUserTokens)
+                            {
+                            if (item == token)
+                            {
+                                context.Fail("Unauthorized");
+                            }
+                        }
+                            
                         if (user == null)
                         {
                             // return unauthorized if user no longer exists
@@ -71,8 +82,9 @@ namespace WebApi
                     ValidateIssuer = false,
                     ValidateAudience = false,
                     ValidateLifetime = true,
-                    //LifetimeValidator = LifetimeValidator,
-                    ClockSkew = TimeSpan.Zero
+                    LifetimeValidator = LifetimeValidator,
+                    ClockSkew = TimeSpan.Zero,
+                    
                 };
             });
 
@@ -87,6 +99,8 @@ namespace WebApi
             }
             return false;
         }
+       
+
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
@@ -97,7 +111,7 @@ namespace WebApi
                 .AllowAnyHeader());
 
             app.UseAuthentication();
-
+            
             app.UseMvc();
         }
     }
