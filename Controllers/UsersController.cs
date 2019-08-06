@@ -41,7 +41,7 @@ namespace WebApi.Controllers
         [HttpPost("authenticate")]
         public IActionResult Authenticate([FromBody] UserDto userDto)
         {
-            var user = _userService.Authenticate(userDto.Username, userDto.Password);
+            var user = _userService.Authenticate(userDto.Email, userDto.Password);
 
             if (user == null)
                 return BadRequest(new {message = "Username or password is incorrect"});
@@ -76,7 +76,7 @@ namespace WebApi.Controllers
                 return Ok(new
                 {
                     Id = user.Id,
-                    Username = user.Username,
+                   
                     FirstName = user.FirstName,
                     LastName = user.LastName,
                     Token = tokenString
@@ -95,12 +95,15 @@ namespace WebApi.Controllers
             {
                 // save 
                 _userService.Create(user, userDto.Password);
+
                 return Ok();
             }
             catch (AppException ex)
             {
+                ErrorDto errorDto = new ErrorDto();
+                errorDto.Message = ex.Message;
                 // return error message if there was an exception
-                return BadRequest(new {message = ex.Message});
+                return BadRequest(errorDto );
             }
         }
 
